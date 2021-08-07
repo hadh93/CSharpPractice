@@ -4,53 +4,85 @@ using UnityEngine;
 
 public class BlockRoot : MonoBehaviour
 {
-    public GameObject BlockPrefab = null; // ¸¸µé¾î³¾ ºí·ÏÀÇ ÇÁ¸®ÆÕ.
-    public BlockControl[,] blocks; // ±×¸®µå.
+    public GameObject BlockPrefab = null; // ë§Œë“¤ì–´ë‚¼ ë¸”ë¡ì˜ í”„ë¦¬íŒ¹.
+    public BlockControl[,] blocks; // ê·¸ë¦¬ë“œ.
+
+    private GameObject main_camera = null; // ë©”ì¸ ì¹´ë©”ë¼.
+    private BlockControl grabbed_block = null; // ì¡ì€ ë¸”ë¡.
 
     // Start is called before the first frame update
     void Start()
     {
-        
+        this.main_camera = GameObject.FindGameObjectWithTag("MainCamera");
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        Vector3 mouse_position; // ë§ˆìš°ìŠ¤ ìœ„ì¹˜
+        this.unprojectMousePosition(out mouse_position, Input.mousePosition); // ë§ˆìš°ìŠ¤ ìœ„ì¹˜ë¥¼ ê°€ì ¸ì˜¨ë‹¤.
+
+        Vector2 mouse_position_xy = new Vector2(mouse_position.x, mouse_position.y); // ê°€ì ¸ì˜¨ ë§ˆìš°ìŠ¤ ìœ„ì¹˜ë¥¼ í•˜ë‚˜ì˜ Vector2ë¡œ ëª¨ì€ë‹¤.
+        if (this.grabbed_block == null) { // ì¡ì€ ë¸”ë¡ì´ ë¹„ì—ˆìœ¼ë©´,
+            // if (!this.is_has_falling_block()){
+            if (Input.GetMouseButtonDown(0)) {  // ë§ˆìš°ìŠ¤ ë²„íŠ¼ì´ ëˆŒë ¸ìœ¼ë©´,
+                // blocks ë°°ì—´ì˜ ëª¨ë“  ìš”ì†Œë¥¼ ì°¨ë¡€ë¡œ ì²˜ë¦¬í•œë‹¤.
+                foreach (BlockControl block in this.blocks) {
+                    if (!block.isGrabbable()) { // ë¸”ë¡ì„ ì¡ì„ ìˆ˜ ì—†ë‹¤ë©´,
+                        continue; // ë£¨í”„ì˜ ì²˜ìŒìœ¼ë¡œ ì í”„í•œë‹¤.
+                    }
+                    // ë§ˆìš°ìŠ¤ ìœ„ì¹˜ê°€ ë¸”ë¡ ì˜ì—­ ì•ˆì´ ì•„ë‹ˆë©´.
+                    if (!block.isContainedPosition(mouse_position_xy)) {
+                        continue; // ë£¨í”„ì˜ ì²˜ìŒìœ¼ë¡œ ì í”„í•œë‹¤. 
+                    }
+                    // ì²˜ë¦¬ ì¤‘ì¸ ë¸”ë¡ì„ grabbed_blockì— ë“±ë¡í•œë‹¤.
+                    this.grabbed_block = block;
+                    // ì¡ì•˜ì„ ë•Œì˜ ì²˜ë¦¬ë¥¼ ì‹¤í–‰í•œë‹¤.
+                    this.grabbed_block.beginGrab();
+                    break;
+                }
+            }
+            //}
+        } else { // ë¸”ë¡ì„ ì¡ì•˜ì„ ë•Œ
+            if (!Input.GetMouseButton(0)) { // ë§ˆìš°ìŠ¤ ë²„íŠ¼ì´ ëˆŒë ¤ì ¸ ìˆì§€ ì•Šìœ¼ë©´,
+                this.grabbed_block.endGrab(); //ë¸”ë¡ì„ ë†¨ì„ ë•Œì˜ ì²˜ë¦¬ë¥¼ ì‹¤í–‰.
+                this.grabbed_block = null; // grabbed_blockì„ ë¹„ìš°ê²Œ ì„¤ì •.
+            }
+        }
     }
 
-    //ºí·ÏÀ» ¸¸µé¾î ³»°í °¡·Î 9Ä­, ¼¼·Î 9Ä­¿¡ ¹èÄ¡ÇÑ´Ù.
+    //ë¸”ë¡ì„ ë§Œë“¤ì–´ ë‚´ê³  ê°€ë¡œ 9ì¹¸, ì„¸ë¡œ 9ì¹¸ì— ë°°ì¹˜í•œë‹¤.
     public void initialSetUp()
     {
-        // ±×¸®µåÀÇ Å©±â¸¦ 9 x 9 ·Î ÇÑ´Ù.
+        // ê·¸ë¦¬ë“œì˜ í¬ê¸°ë¥¼ 9 x 9 ë¡œ í•œë‹¤.
         this.blocks = new BlockControl[Block.BLOCK_NUM_X, Block.BLOCK_NUM_Y];
         int color_index = 0;
 
         for (int y = 0; y < Block.BLOCK_NUM_Y; y++) {
             for (int x = 0; x < Block.BLOCK_NUM_X; x++) {
-                // BlockPrefabÀÇ ÀÎ½ºÅÏ½º¸¦ ¾À¿¡ ¸¸µç´Ù.
+                // BlockPrefabì˜ ì¸ìŠ¤í„´ìŠ¤ë¥¼ ì”¬ì— ë§Œë“ ë‹¤.
                 GameObject game_object = Instantiate(this.BlockPrefab) as GameObject;
-                // À§¿¡¼­ ¸¸µç ºí·ÏÀÇ BlockControl Å¬·¡½º¸¦ °¡Á®¿Â´Ù.
+                // ìœ„ì—ì„œ ë§Œë“  ë¸”ë¡ì˜ BlockControl í´ë˜ìŠ¤ë¥¼ ê°€ì ¸ì˜¨ë‹¤.
                 BlockControl block = game_object.GetComponent<BlockControl>();
-                // ºí·ÏÀ» ±×¸®µå¿¡ ÀúÀåÇÑ´Ù
+                // ë¸”ë¡ì„ ê·¸ë¦¬ë“œì— ì €ì¥í•œë‹¤
                 this.blocks[x, y] = block;
 
-                // ºí·ÏÀÇ À§Ä¡ Á¤º¸ (±×¸®µå ÁÂÇ¥) ¸¦ ¼³Á¤ÇÑ´Ù.
+                // ë¸”ë¡ì˜ ìœ„ì¹˜ ì •ë³´ (ê·¸ë¦¬ë“œ ì¢Œí‘œ) ë¥¼ ì„¤ì •í•œë‹¤.
                 block.i_pos.x = x;
                 block.i_pos.y = y;
-                // °¢ BlockControlÀÌ ¿¬°èÇÒ GameRoot´Â ÀÚ½ÅÀÌ¶ó°í ¼³Á¤ÇÑ´Ù.
+                // ê° BlockControlì´ ì—°ê³„í•  GameRootëŠ” ìì‹ ì´ë¼ê³  ì„¤ì •í•œë‹¤.
                 block.block_root = this;
 
-                // ±×¸®µå ÁÂÇ¥¸¦ ½ÇÁ¦ À§Ä¡(¾ÀÀÇ ÁÂÇ¥)·Î º¯È¯ÇÑ´Ù.
+                // ê·¸ë¦¬ë“œ ì¢Œí‘œë¥¼ ì‹¤ì œ ìœ„ì¹˜(ì”¬ì˜ ì¢Œí‘œ)ë¡œ ë³€í™˜í•œë‹¤.
                 Vector3 position = BlockRoot.calcBlockPosition(block.i_pos);
-                // ¾ÀÀÇ ºí·Ï À§Ä¡¸¦ ÀÌµ¿ÇÑ´Ù.
+                // ì”¬ì˜ ë¸”ë¡ ìœ„ì¹˜ë¥¼ ì´ë™í•œë‹¤.
                 block.transform.position = position;
-                // ºí·ÏÀÇ »öÀ» º¯°æÇÑ´Ù.
+                // ë¸”ë¡ì˜ ìƒ‰ì„ ë³€ê²½í•œë‹¤.
                 block.setColor((Block.COLOR)color_index);
-                // ºí·ÏÀÇ ÀÌ¸§À» ¼³Á¤(ÈÄ¼ú)ÇÑ´Ù.
+                // ë¸”ë¡ì˜ ì´ë¦„ì„ ì„¤ì •(í›„ìˆ )í•œë‹¤.
                 block.name = "block(" + block.i_pos.x.ToString() + "," + block.i_pos.y.ToString() + ")";
 
-                // ÀüÃ¼ »ö Áß¿¡¼­ ÀÓÀÇ·Î ÇÏ³ªÀÇ »öÀ» ¼±ÅÃÇÑ´Ù.
+                // ì „ì²´ ìƒ‰ ì¤‘ì—ì„œ ì„ì˜ë¡œ í•˜ë‚˜ì˜ ìƒ‰ì„ ì„ íƒí•œë‹¤.
 
                 color_index = Random.Range(0, (int)Block.COLOR.NORMAL_COLOR_NUM);
             }
@@ -60,16 +92,41 @@ public class BlockRoot : MonoBehaviour
     public static Vector3 calcBlockPosition(Block.iPosition i_pos)
     {
 
-        // ¹èÄ¡ÇÒ ¿ŞÂÊ À§ ±¸¼® À§Ä¡¸¦ ÃÊ±ê°ªÀ¸·Î ¼³Á¤ÇÑ´Ù.
+        // ë°°ì¹˜í•  ì™¼ìª½ ìœ„ êµ¬ì„ ìœ„ì¹˜ë¥¼ ì´ˆê¹ƒê°’ìœ¼ë¡œ ì„¤ì •í•œë‹¤.
         Vector3 position = new Vector3(-(Block.BLOCK_NUM_X / 2.0f - 0.5f), -(Block.BLOCK_NUM_Y / 2.0f - 0.5f), 0.0f);
 
-        // ÃÊ±ê°ª + ±×¸®µå ÁÂÇ¥ x ºí·Ï Å©±â.
+        // ì´ˆê¹ƒê°’ + ê·¸ë¦¬ë“œ ì¢Œí‘œ x ë¸”ë¡ í¬ê¸°.
 
         position.x += (float)i_pos.x * Block.COLLISION_SIZE;
         position.y += (float)i_pos.y * Block.COLLISION_SIZE;
 
         return (position);
 
+    }
+
+    public bool unprojectMousePosition(out Vector3 world_position, Vector3 mouse_position) {
+        bool ret;
+
+        // íŒì„ ì‘ì„±í•œë‹¤. ì´ íŒì€ ì¹´ë©”ë¼ì— ëŒ€í•´ì„œ ë’¤ë¡œ í–¥í•´ì„œ (Vector3.back).
+        // ë¸”ë¡ì˜ ì ˆë°˜ í¬ê¸°ë§Œí¼ ì•ì— ë‘”ë‹¤.
+        Plane plane = new Plane(Vector3.back, new Vector3(0.0f, 0.0f, -Block.COLLISION_SIZE / 2.0f));
+
+        // ì¹´ë©”ë¼ì™€ ë§ˆìš°ìŠ¤ë¥¼ í†µê³¼í•˜ëŠ” ë¹›ì„ ë§Œë“ ë‹¤.
+        Ray ray = this.main_camera.GetComponent<Camera>().ScreenPointToRay(mouse_position);
+
+        float depth;
+
+        // ê´‘ì„ (ray)ì´ íŒ(plane)ì— ë‹¿ì•˜ë‹¤ë©´,
+        if (plane.Raycast(ray, out depth)) { // ê´‘ì„ ì´ ë‹¿ì•˜ë‹¤ë©´ depthì— ì •ë³´ê°€ ê¸°ë¡ëœë‹¤.
+            // ì¸ìˆ˜ world_positionì„ ë§ˆìš°ìŠ¤ ìœ„ì¹˜ë¡œ ë®ì–´ì“´ë‹¤.
+            world_position = ray.origin + ray.direction * depth;
+            ret = true;
+        } else {
+            // ì¸ìˆ˜ world_positionì„ 0ì¸ ë²¡í„°ë¡œ ë®ì–´ì“´ë‹¤.
+            world_position = Vector3.zero;
+            ret = false;
+        }
+        return (ret);
     }
 
 
