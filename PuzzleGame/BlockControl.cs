@@ -4,43 +4,56 @@ using UnityEngine;
 
 public class Block
 {
-    public static float COLLISION_SIZE = 1.0f; // ºí·ÏÀÇ Ãæµ¹ Å©±â.
-    public static float VANISH_TIME = 3.0f; // ºÒ ºÙ°í »ç¶óÁú ¶§ ±îÁöÀÇ ½Ã°£.
+    public static float COLLISION_SIZE = 1.0f; // ë¸”ë¡ì˜ ì¶©ëŒ í¬ê¸°.
+    public static float VANISH_TIME = 3.0f; // ë¶ˆ ë¶™ê³  ì‚¬ë¼ì§ˆ ë•Œ ê¹Œì§€ì˜ ì‹œê°„.
 
     public struct iPosition
-    { // ±×¸®µå¿¡¼­ÀÇ ÁÂÇ¥¸¦ ³ªÅ¸³»´Â ±¸Á¶Ã¼.
-        public int x; // X ÁÂÇ¥.
-        public int y; // Y ÁÂÇ¥.
+    { // ê·¸ë¦¬ë“œì—ì„œì˜ ì¢Œí‘œë¥¼ ë‚˜íƒ€ë‚´ëŠ” êµ¬ì¡°ì²´.
+        public int x; // X ì¢Œí‘œ.
+        public int y; // Y ì¢Œí‘œ.
     }
 
     public enum COLOR
-    { // ºí·Ï »ö»ó.
-        NONE = -1, // »ö ÁöÁ¤ ¾øÀ½.
-        PINK = 0, // ºĞÈ«»ö (ÀÌÇÏ °¢ »ö»óÀÇ »ó¼ö).
+    { // ë¸”ë¡ ìƒ‰ìƒ.
+        NONE = -1, // ìƒ‰ ì§€ì • ì—†ìŒ.
+        PINK = 0, // ë¶„í™ìƒ‰ (ì´í•˜ ê° ìƒ‰ìƒì˜ ìƒìˆ˜).
         BLUE,
         YELLOW,
         GREEN,
         MAGENTA,
         ORANGE,
         GRAY,
-        NUM, // ÄÃ·¯°¡ ¸î Á¾·ùÀÎÁö ³ªÅ¸³½´Ù.
+        NUM, // ì»¬ëŸ¬ê°€ ëª‡ ì¢…ë¥˜ì¸ì§€ ë‚˜íƒ€ë‚¸ë‹¤.
         FIRST = PINK,
         LAST = ORANGE,
         NORMAL_COLOR_NUM = GRAY,
     };
 
     public enum DIR4
-    { // »óÇÏÁÂ¿ì ³× ¹æÇâ.
-        NONE = -1, // ¹æÇâÁöÁ¤ ¾øÀ½. 
+    { // ìƒí•˜ì¢Œìš° ë„¤ ë°©í–¥.
+        NONE = -1, // ë°©í–¥ì§€ì • ì—†ìŒ. 
         RIGHT,
         LEFT,
         UP,
         DOWN,
-        NUM, // ¹æÇâÀÌ ¸î Á¾·ù ÀÖ´ÂÁö ³ªÅ¸³½´Ù (=4).
+        NUM, // ë°©í–¥ì´ ëª‡ ì¢…ë¥˜ ìˆëŠ”ì§€ ë‚˜íƒ€ë‚¸ë‹¤ (=4).
     }
 
-    public static int BLOCK_NUM_X = 9; // ºí·ÏÀ» ¹èÄ¡ÇÒ ¼ö ÀÖ´Â X¹æÇâ ÃÖ´ë¼ö.
-    public static int BLOCK_NUM_Y = 9; // ºí·ÏÀ» ¹èÄ¡ÇÒ ¼ö ÀÖ´Â Y¹æÇâ ÃÖ´ë¼ö.
+    public enum STEP { // ë¸”ë¡ì˜ ìƒíƒœ í‘œì‹œ.
+        NONE = -1, // ìƒíƒœ ì •ë³´ ì—†ìŒ.
+        IDLE = 0, // ëŒ€ê¸°ì¤‘.
+        GRABBED, // ì¡í˜€ ìˆìŒ.
+        RELEASED, // ë–¨ì–´ì§„ ìˆœê°„.
+        SLIDE, // ìŠ¬ë¼ì´ë“œ ì¤‘.
+        VACANT, // ì†Œë©¸ ì¤‘.
+        RESPAWN, // ì¬ìƒì„± ì¤‘.
+        FALL, // ë‚™í•˜ ì¤‘.
+        LONG_SLIDE, // í¬ê²Œ ìŠ¬ë¼ì´ë“œ ì¤‘.
+        NUM, // ìƒíƒœê°€ ëª‡ ì¢…ë¥˜ì¸ì§€ í‘œì‹œ.
+    }
+
+    public static int BLOCK_NUM_X = 9; // ë¸”ë¡ì„ ë°°ì¹˜í•  ìˆ˜ ìˆëŠ” Xë°©í–¥ ìµœëŒ€ìˆ˜.
+    public static int BLOCK_NUM_Y = 9; // ë¸”ë¡ì„ ë°°ì¹˜í•  ìˆ˜ ìˆëŠ” Yë°©í–¥ ìµœëŒ€ìˆ˜.
 
 }
 
@@ -53,17 +66,59 @@ public class BlockControl : MonoBehaviour
     public BlockRoot block_root = null;
     public Block.iPosition i_pos;
 
+    public Block.STEP step = Block.STEP.NONE;
+    public Block.STEP next_step = Block.STEP.NONE;
+    private Vector3 position_offset_initial = Vector3.zero;
+    public Vector3 position_offset = Vector3.zero;
+
 
     // Start is called before the first frame update
     void Start()
     {
         this.setColor(this.color);
+        this.next_step = Block.STEP.IDLE; // ë‹¤ìŒ ë¸”ë¡ì„ ëŒ€ê¸°ì¤‘ìœ¼ë¡œ.
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        Vector3 mouse_position; // ë§ˆìš°ìŠ¤ ìœ„ì¹˜.
+        this.block_root.unprojectMousePosition(out mouse_position, Input.mousePosition); // ë§ˆìš°ìŠ¤ ìœ„ì¹˜ íšë“.
+
+        // íšë“í•œ ë§ˆìš°ìŠ¤ ìœ„ì¹˜ë¥¼ Xì™€ Yë§Œìœ¼ë¡œ í•œë‹¤.
+        Vector2 mouse_position_xy = new Vector2(mouse_position.x, mouse_position.y);
+
+        // 'ë‹¤ìŒ ë¸”ë¡' ìƒíƒœê°€ 'ì •ë³´ ì—†ìŒ' ì´ì™¸ì¸ ë™ì•ˆ.
+        // = 'ë‹¤ìŒ ë¸”ë¡' ìƒíƒœê°€ ë³€ê²½ëœ ê²½ìš°.
+
+        while (this.next_step != Block.STEP.NONE) {
+            this.step = this.next_step;
+            this.next_step = Block.STEP.NONE;
+
+            switch (this.step) {
+                case Block.STEP.IDLE: // 'ëŒ€ê¸°(IDLE)' ìƒíƒœ.
+                    this.position_offset = Vector3.zero;
+                    // ë¸”ë¡ í‘œì‹œ í¬ê¸°ë¥¼ ë³´í†µìœ¼ë¡œ í•œë‹¤.
+                    this.transform.localScale = Vector3.one * 1.0f;
+                    break;
+                case Block.STEP.GRABBED: // 'ì¡íŒ(GRABBED)' ìƒíƒœ.
+                    // ë¸”ë¡ í‘œì‹œ í¬ê¸°ë¥¼ í¬ê²Œ í•œë‹¤.
+                    this.transform.localScale = Vector3.one * 1.2f;
+                    break;
+                case Block.STEP.RELEASED:
+                    this.position_offset = Vector3.zero;
+                    // ë¸”ë¡ í‘œì‹œ í¬ê¸°ë¥¼ ë³´í†µìœ¼ë¡œ í•œë‹¤.
+                    this.transform.localScale = Vector3.one * 1.0f;
+                    break;
+            }
+
+        }
+        //ê·¸ë¦¬ë“œ ì¢Œí‘œë¥¼ ì‹¤ì œ ì¢Œí‘œ (ì”¬ì˜ ì¢Œí‘œ)ë¡œ ë³€í™˜í•˜ê³ , position_offsetì„ ì¶”ê°€í•œë‹¤.
+        Vector3 position = BlockRoot.calcBlockPosition(this.i_pos) + this.position_offset;
+
+        //ì‹¤ì œ ìœ„ì¹˜ë¥¼ ìƒˆë¡œìš´ ìœ„ì¹˜ë¡œ ë³€ê²½í•œë‹¤.
+        this.transform.position = position;
+
     }
     public void setColor(Block.COLOR color)
     {
@@ -91,7 +146,56 @@ public class BlockControl : MonoBehaviour
                 color_value = new Color(1.0f, 0.46f, 0.0f);
                 break;
         }
-        // ÀÌ °ÔÀÓ ¿ÀºêÁ§Æ®ÀÇ ¸ÓÆ¼¸®¾ó »ö»óÀ» º¯°æÇÑ´Ù.
+        // ì´ ê²Œì„ ì˜¤ë¸Œì íŠ¸ì˜ ë¨¸í‹°ë¦¬ì–¼ ìƒ‰ìƒì„ ë³€ê²½í•œë‹¤.
         this.GetComponent<Renderer>().material.color = color_value;
     }
+
+    public void beginGrab()
+    {
+        this.next_step = Block.STEP.GRABBED;
+    }
+
+    public void endGrab()
+    {
+        this.next_step = Block.STEP.IDLE;
+    }
+
+    public bool isGrabbable()
+    {
+        bool is_grabbable = false;
+        switch (this.step) {
+            case Block.STEP.IDLE: // 'ëŒ€ê¸°'ìƒíƒœì¼ë•Œë§Œ.
+                is_grabbable = true; // true(ì¡ì„ ìˆ˜ ìˆë‹¤)ë¥¼ ë°˜í™˜í•œë‹¤.
+                break;
+        }
+        return (is_grabbable);
+    }
+
+    public bool isContainedPosition(Vector2 position)
+    {
+        bool ret = false;
+        Vector3 center = this.transform.position;
+        float h = Block.COLLISION_SIZE / 2.0f;
+        do
+        {
+            // Xì¢Œí‘œê°€ ìì‹ ê³¼ ê²¹ì¹˜ì§€ ì•Šìœ¼ë©´ breakë¡œ ë£¨í”„ë¥¼ ë¹ ì ¸ ë‚˜ê°„ë‹¤.
+            if (position.x < center.x - h || center.x + h < position.x)
+            {
+                break;
+            }
+
+            // Yì¢Œí‘œê°€ ìì‹ ê³¼ ê²¹ì¹˜ì§€ ì•Šìœ¼ë©´ breakë¡œ ë£¨í”„ë¥¼ ë¹ ì ¸ ë‚˜ê°„ë‹¤.
+            if (position.y < center.y - h || center.y + h < position.y)
+            {
+                break;
+            }
+            // Xì¢Œí‘œ, Yì¢Œí‘œ ëª¨ë‘ ê²¹ì³ìˆìœ¼ë©´ true(ê²¹ì³ìˆë‹¤)ë¥¼ ë°˜í™˜í•œë‹¤.
+            ret = true;
+
+        } while (false);
+
+        return ret;
+
+    }
+
 }
