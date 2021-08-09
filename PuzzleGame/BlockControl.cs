@@ -75,6 +75,9 @@ public class BlockControl : MonoBehaviour
     public Block.DIR4 slide_dir = Block.DIR4.NONE; // 슬라이드 된 방향.
     public float step_timer = 0.0f; // 블록이 교체된 때의 이동시간 등.
 
+    public Material opaque_material; // 불투명 머티리얼
+    public Material transparent_material; // 반투명 머티리얼
+
 
     // Start is called before the first frame update
     void Start()
@@ -91,6 +94,20 @@ public class BlockControl : MonoBehaviour
 
         // 획득한 마우스 위치를 X와 Y만으로 한다.
         Vector2 mouse_position_xy = new Vector2(mouse_position.x, mouse_position.y);
+
+        if (this.vanish_timer >= 0.0f) { // 타이머가 0 이상이면,
+            this.vanish_timer -= Time.deltaTime; // 타이머의 값을 줄인다.
+            if (this.vanish_timer < 0.0f) { // 타이머가 0 미만이면,
+                if (this.step != Block.STEP.SLIDE)
+                { // 슬라이드 중이 아니라면,
+                    this.vanish_timer = -1.0f;
+                    this.next_step = Block.STEP.VACANT; // 상태를 '소멸중'으로 전환한다.
+                }
+                else {
+                    this.vanish_timer = 0.0f;
+                }
+            }
+        }
 
         this.step_timer += Time.deltaTime;
         float slide_time = 0.2f;
@@ -138,6 +155,7 @@ public class BlockControl : MonoBehaviour
                     break;
                 case Block.STEP.VACANT:
                     this.position_offset = Vector3.zero;
+                    this.setVisible(false); // 블록을 표시하지 않게 한다.
                     break;
             }
             this.step_timer = 0.0f;
@@ -162,6 +180,27 @@ public class BlockControl : MonoBehaviour
 
         //실제 위치를 새로운 위치로 변경한다.
         this.transform.position = position;
+
+        this.setColor(this.color);
+
+        if (this.vanish_timer >= 0.0f) {
+            Color color0 = Color.Lerp(this.GetComponent<Renderer>().material.color, Color.white, 0.5f); // 현재 색과 흰 색의 중간색
+            Color color1 = Color.Lerp(this.GetComponent<Renderer>().material.color, Color.black, 0.5f); // 현재 색과 검은 색의 중간색
+
+            // 불붙는 연출시간이 절반을 지났다면,
+            if (this.vanish_timer < Block.VANISH_TIME / 2.0f) {
+                // 투명도(a)를 설정.
+                color0.a = this.vanish_timer / (Block.VANISH_TIME / 2.0f);
+                color1.a = color0.a;
+
+                // 반투명 머티리얼을 적용.
+                this.GetComponent<Renderer>().material = this.transparent_material;
+            }
+            // vanish_timer가 줄어들수록 1에 가까워진다.
+            float rate = 1.0f - this.vanish_timer / Block.VANISH_TIME;
+            // 서서히 색을 바꾼다.
+            this.GetComponent<Renderer>().material.color = Color.Lerp(color0, color1, rate);
+        }
 
     }
     public void setColor(Block.COLOR color)
@@ -314,6 +353,47 @@ public class BlockControl : MonoBehaviour
 
         this.next_step = Block.STEP.SLIDE;
         //상태를 SLIDE로 변경.
+    }
+
+    public void toVanishing() {
+        // '사라질 때 까지 걸리는 시간'을 규정값으로 리셋.
+        this.vanish_timer = Block.VANISH_TIME;
+    }
+
+    public bool isVanishing() {
+        // vanish_timer가 0보다 크면 true.
+        bool is_vanishing = (this.vanish_timer > 0.0f);
+        return (is_vanishing);
+    }
+
+    public void rewindVanishTimer() {
+        // '사라질 때 까지 걸리는 시간'을 규정값으로 리셋.
+        this.vanish_timer = Block.VANISH_TIME;
+    }
+
+    public bool isVisible()
+    {
+        // 그리기 가능(renderer.enabled가 true)상태라면,
+        // 표시되고 있다.
+        bool is_visible = this.GetComponent<Renderer>().enabled;
+        return (is_visible);
+    }
+
+    public void setVisible(bool is_visible) {
+
+        // '그리기 가능' 설정에 인수를 대입.
+        this.GetComponent<Renderer>().enabled = is_visible;
+    }
+
+    public bool isIdle() { 
+        bool is_idle = false;
+        // 현재 블록 상태가 '대기 중'이고,
+        // 다음 블록 상태가 '없음' 이면,
+        if (this.step == Block.STEP.IDLE && this.next_step == Block.STEP.NONE)
+        {
+            is_idle = true;
+        }
+        return (is_idle);
     }
 
 }
