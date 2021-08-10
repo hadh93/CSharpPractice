@@ -78,6 +78,11 @@ public class BlockControl : MonoBehaviour
     public Material opaque_material; // 불투명 머티리얼
     public Material transparent_material; // 반투명 머티리얼
 
+    private struct StepFall {
+        public float velocity;
+    }
+    private StepFall fall;
+
 
     // Start is called before the first frame update
     void Start()
@@ -128,6 +133,17 @@ public class BlockControl : MonoBehaviour
                         }
                     }
                     break;
+
+                case Block.STEP.IDLE:
+                    this.GetComponent<Renderer>().enabled = true;
+                    break;
+
+                case Block.STEP.FALL:
+                    if (this.position_offset.y <= 0.0f) {
+                        this.next_step = Block.STEP.IDLE;
+                        this.position_offset.y = 0.0f;
+                    }
+                    break;
             }
         }
 
@@ -157,6 +173,16 @@ public class BlockControl : MonoBehaviour
                     this.position_offset = Vector3.zero;
                     this.setVisible(false); // 블록을 표시하지 않게 한다.
                     break;
+                case Block.STEP.RESPAWN:
+                    // 색을 랜덤하게 선택하여 블록을 그 색으로 설정.
+                    int color_index = Random.Range(0, (int)Block.COLOR.NORMAL_COLOR_NUM);
+                    this.setColor((Block.COLOR)color_index);
+                    this.next_step = Block.STEP.IDLE;
+                    break;
+                case Block.STEP.FALL:
+                    this.setVisible(true);
+                    this.fall.velocity = 0.0f;
+                    break;
             }
             this.step_timer = 0.0f;
 
@@ -171,6 +197,15 @@ public class BlockControl : MonoBehaviour
                 rate = Mathf.Min(rate, 1.0f);
                 rate = Mathf.Sin(rate * Mathf.PI / 2.0f);
                 this.position_offset = Vector3.Lerp(this.position_offset_initial, Vector3.zero, rate);
+                break;
+            case Block.STEP.FALL:
+                // 속도에 중력의 영향을 부여한다.
+                this.fall.velocity += Physics.gravity.y * Time.deltaTime * 0.3f;
+                // 세로 방향 위치를 계산.
+                this.position_offset.y += this.fall.velocity * Time.deltaTime;
+                if (this.position_offset.y < 0.0f) { // 다 내려왔다면,
+                    this.position_offset.y = 0.0f; // 그 자리에 머무른다.
+                }
                 break;
         }
 
@@ -394,6 +429,33 @@ public class BlockControl : MonoBehaviour
             is_idle = true;
         }
         return (is_idle);
+    }
+
+    public void beginFall(BlockControl start) {
+        this.next_step = Block.STEP.FALL;
+        // 지정된 블록에서 좌표를 계산해 낸다.
+        this.position_offset.y = (float)(start.i_pos.y - this.i_pos.y) * Block.COLLISION_SIZE;
+    }
+
+    public void beginRespawn(int start_ipos_y) {
+        // 지정위치까지 y좌표를 이동한다.
+        this.position_offset.y = (float)(start_ipos_y - this.i_pos.y) * Block.COLLISION_SIZE;
+        this.next_step = Block.STEP.FALL;
+        int color_index = Random.Range((int)Block.COLOR.FIRST, (int)Block.COLOR.LAST +1);
+        this.setColor((Block.COLOR)color_index);
+    }
+
+    public bool isVacant() {
+        bool is_vacant = false;
+        if (this.step == Block.STEP.VACANT && this.next_step == Block.STEP.NONE) {
+            is_vacant = true;
+        }
+        return (is_vacant);
+    }
+
+    public bool isSliding() {
+        bool is_sliding = (this.position_offset.x != 0.0f);
+        return (is_sliding);
     }
 
 }
