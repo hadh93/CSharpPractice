@@ -74,12 +74,28 @@ namespace CSharpPractice
                 Console.WriteLine("잘못된 점수가 입력되었습니다.");
             }
         }
+        
+        private static void for_practice() {
+            for (int i = 1; i <= 10; i++) {
+                Console.Write(i.ToString() + " ");    
+            }
+            Console.WriteLine(" Done.");
+            for (int j = 20; j > 10; j--) {
+                Console.Write(j.ToString() + " ");
+            }
+            Console.WriteLine(" Done.");
+            for (int k = 10; k <= 100; k += 10) {
+                Console.Write(k.ToString() + " ");
+            }
+            Console.WriteLine(" Done.");
+        }
 
         static void Main(string[] args)
         {
 
             Calculator();
             GradeChecker();
+            for_practice();
             Console.ReadKey();
         }
     }
